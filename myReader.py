@@ -29,7 +29,8 @@ def getText(openByAskOrFilepath = 'byAsk'):
             historyList.append(filename)
             saveHistoryFileName()
         #重置文件路径的名称
-        filePathLabel.config(text = filename)
+        file_path.set(filename)
+        #filePathLabel.config(text = filename)
         #重置按钮的位置
         initHistoryButtonCommand()
         with open(filename,'r',encoding = 'UTF-8') as f:
@@ -214,8 +215,9 @@ frm.pack(side = 'bottom')
 settingFrame.pack(side = 'bottom')
 #增加label显示文件路径
 filePathLabel = tk.Label(F1,justify = 'right')
-file_path ='还没打开文件哦~'
-filePathLabel.config(text = file_path)
+file_path = tk.StringVar()
+file_path.set('还没打开文件哦~')
+filePathLabel.config(textvariable = file_path)
 filePathLabel.pack(side = 'top',pady = 5)
 #文本框展示内容&加个滚动条
 text = ts.ScrolledText(F1,width = 68,height = 30)
