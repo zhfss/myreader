@@ -4,11 +4,12 @@ import tkinter.messagebox as mb
 import re
 import tkinter.scrolledtext as ts
 import pickle as pk
+
+
 '''功能打开文档，翻页功能（视情况是否保存历史数据） hhhhh'''
 
 #获取某个文件的内容，初始化 content ，把第一页的内容赛进text
 def getText(openByAskOrFilepath = 'byAsk'):
-    global text
     global content
     global nowPage
     global historyList
@@ -35,9 +36,15 @@ def getText(openByAskOrFilepath = 'byAsk'):
         initHistoryButtonCommand()
         with open(filename,'r',encoding = 'UTF-8') as f:
             content = f.readlines()
-        text.delete(0.0,tk.END)
-        text.insert(tk.INSERT,getOnePage(setting.get()))
+        insertText(setting.get())
 # 获取一页（默认20行的内容）
+#插入数据的代码过多，组成一个函数吧
+def insertText(information):
+    global text
+    text.config(state=tk.NORMAL)
+    text.delete(0.0, tk.END)
+    text.insert(tk.INSERT, getOnePage(information))
+    text.config(state=tk.DISABLED)
 def getOnePage(lines = 20):
     global content
     global nowPage
@@ -66,26 +73,22 @@ def getOnePage(lines = 20):
     return tem
 #按钮的方法下一页
 def nextPage():
-    global text
+
     lines = setting.get() 
     if nowPage  < content.__len__():
-        text.delete(0.0,tk.END)
-        pg = getOnePage(setting.get())
-        text.insert(tk.INSERT,pg)
+        insertText(setting.get())
 #按钮的方法上一页
 def previouPage():
-    global text
+
     global nowPage
     lines = int(setting.get())*-1
-    text.delete(0.0,tk.END)
     if nowPage + lines > 0:
         pg = getOnePage(lines)
-        #print('pg is ',lines,pg)
-        text.insert(tk.INSERT,pg)
+        insertText(pg)
     else:
         nowPage = 0
         pg = getOnePage()
-        text.insert(tk.INSERT,pg)
+        insertText(pg)
         
 #按钮的方法跳转
 def skipPage():
@@ -94,9 +97,7 @@ def skipPage():
     for i ,v in enumerate(content):
         if v.find(entry.get())!= -1 :
             nowPage = i
-            text.delete(0.0,tk.END)
-            pg = getOnePage(setting.get())
-            text.insert(tk.INSERT,pg)
+            insertText(setting.get())
             break
         elif i+1 == content.__len__():
             mb.showinfo('WORNING!','Not found worlds in text file')
@@ -120,9 +121,7 @@ def nextSection():
         for i ,v in enumerate(content):
             if v.find(toMatch)!= -1 :
                 nowPage = i
-                text.delete(0.0,tk.END)
-                pg = getOnePage(setting.get())
-                text.insert(tk.INSERT,pg)
+                insertText(setting.get())
                 break
             elif i+1 == content.__len__():
                 mb.showinfo('WORNING!','Not found worlds in text file')
@@ -220,7 +219,7 @@ file_path.set('还没打开文件哦~')
 filePathLabel.config(textvariable = file_path)
 filePathLabel.pack(side = 'top',pady = 5)
 #文本框展示内容&加个滚动条
-text = ts.ScrolledText(F1,width = 68,height = 30)
+text = ts.ScrolledText(F1,width = 68,height = 30 )
 text.pack(side = 'top',fill = tk.BOTH,pady = 5)
 
 
