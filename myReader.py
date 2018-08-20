@@ -4,7 +4,7 @@ import tkinter.messagebox as mb
 import re
 import tkinter.scrolledtext as ts
 import pickle as pk
-'''功能打开文档，翻页功能（视情况是否保存历史数据）'''
+'''功能打开文档，翻页功能（视情况是否保存历史数据） hhhhh'''
 
 #获取某个文件的内容，初始化 content ，把第一页的内容赛进text
 def getText(openByAskOrFilepath = 'byAsk'):
