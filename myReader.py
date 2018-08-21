@@ -149,12 +149,17 @@ def initHistoryButtonCommand():
     #command 引用的变量 ，参数又引用变量，导致最后引用的都是同一个变量。
     #所以button不起变化啊啊啊啊（变量的理解不深刻）
     global btList
+    #似乎找到了解决的方式：_value = value
+    for i ,value in enumerate(historyList):
+        btList[i].config(command = lambda _value = value : getText(openByAskOrFilepath = _value))
+    '''
     v1,v2,v3,v4,v5 = historyList[0],historyList[1],historyList[2],historyList[3],historyList[4]
     btList[0].config(command = lambda : getText( openByAskOrFilepath = v1))
     btList[1].config(command = lambda : getText( openByAskOrFilepath = v2))
     btList[2].config(command = lambda : getText( openByAskOrFilepath = v3))
     btList[3].config(command = lambda : getText( openByAskOrFilepath = v4))
     btList[4].config(command = lambda : getText( openByAskOrFilepath = v5))
+    '''
     print(historyList)
     if 'INIT' in historyList:
         #先取消安装
@@ -213,11 +218,12 @@ bt_exit.pack(side ='bottom')
 frm.pack(side = 'bottom')
 settingFrame.pack(side = 'bottom')
 #增加label显示文件路径
-filePathLabel = tk.Label(F1,justify = 'right')
+#filePathLabel = tk.Label(F1,justify = 'right')
+filePathLabel = tk.Entry(F1,justify = 'left',width = 68)#,state = tk.DISABLED)
 file_path = tk.StringVar()
 file_path.set('还没打开文件哦~')
 filePathLabel.config(textvariable = file_path)
-filePathLabel.pack(side = 'top',pady = 5)
+filePathLabel.pack(side = 'top',pady = 5 )
 #文本框展示内容&加个滚动条
 text = ts.ScrolledText(F1,width = 68,height = 30 )
 text.pack(side = 'top',fill = tk.BOTH,pady = 5)
