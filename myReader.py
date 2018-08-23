@@ -4,11 +4,16 @@ import tkinter.messagebox as mb
 import re
 import tkinter.scrolledtext as ts
 import pickle as pk
+from  requests import post
+from bs4 import BeautifulSoup as bs
 
 
-'''功能打开文档，翻页功能 （视情况是否保存历史数据）hhhhh'''
+'''功能打开文档，翻页功能 （视情况是否保存历史数据）hhhhh
+https://www.biqugexsw.com/31_31690/11602024.html
+'''
 
 #获取某个文件的内容，初始化 content ，把第一页的内容赛进text
+
 def getText(openByAskOrFilepath = 'byAsk'):
     global content
     global nowPage
@@ -39,11 +44,11 @@ def getText(openByAskOrFilepath = 'byAsk'):
         insertText(setting.get())
 # 获取一页（默认20行的内容）
 #插入数据的代码过多，组成一个函数吧
-def insertText(information):
+def insertText(pages):
     global text
     text.config(state=tk.NORMAL)
     text.delete(0.0, tk.END)
-    text.insert(tk.INSERT, getOnePage(information))
+    text.insert(tk.INSERT, getOnePage(pages))
     text.config(state=tk.DISABLED)
 def getOnePage(lines = 20):
     global content
@@ -83,50 +88,103 @@ def previouPage():
     global nowPage
     lines = int(setting.get())*-1
     if nowPage + lines > 0:
-        pg = getOnePage(lines)
-        insertText(pg)
+        
+        insertText(lines)
     else:
         nowPage = 0
-        pg = getOnePage()
-        insertText(pg)
+        
+        insertText(-lines)
         
 #按钮的方法跳转
 def skipPage():
+    global text
     global entry
     global nowPage
-    for i ,v in enumerate(content):
-        if v.find(entry.get())!= -1 :
-            nowPage = i
-            insertText(setting.get())
-            break
-        elif i+1 == content.__len__():
-            mb.showinfo('WORNING!','Not found worlds in text file')
-def nextSection():
-    global nowSection
-    global nowPage
-    oneSectionPages = 300
-    begin = nowPage - int(setting.get()) + 1
-    end = begin + oneSectionPages
-    key = ''
-    tem = ''
-    for i in range(begin,end):
-        if i < content.__len__():
-            tem += content[i]
-    sections = re.findall(r'第\d{1,5}章',tem)
-    print(sections)
-    if sections.__len__() != 0:
-        key = sections[0]
-        keys = int(re.search(r'\d{1,5}',key).group())
-        toMatch = '第'+ str(keys) + '章'
+    global nextPageUrl
+    global host
+    seachContent=entry.get()
+    host = re.findall('^.*com',seachContent)[0]
+    if 'http' in seachContent:
+        url = seachContent
+        response = post(url)
+        result = response.text
+        soup = bs(result,'html.parser')
+        myContent = str(soup.find(id = 'content').text).replace('<br/>','\n')
+        text.config(state=tk.NORMAL)
+        text.delete(0.0, tk.END)
+        text.insert(tk.INSERT, myContent)
+        text.config(state=tk.DISABLED)
+        #获取名称and显示名称
+        title = soup.find('title').text
+        file_path.set(title)
+        #为下一章做准备
+        a_list = soup.find_all('a')
+        for a in a_list:
+            if a.text == '下一章':
+                nextPageUrl = host + a.get('href')
+                print(nextPageUrl)
+                break
+        
+    else:
         for i ,v in enumerate(content):
-            if v.find(toMatch)!= -1 :
+            if v.find(seachContent)!= -1 :
                 nowPage = i
                 insertText(setting.get())
                 break
             elif i+1 == content.__len__():
                 mb.showinfo('WORNING!','Not found worlds in text file')
-    else :
-        mb.showinfo('WORNING!','Not found keyWorld 第N章 in text file')   
+def nextSection():
+    global nowSection
+    global nowPage
+    global nextPageUrl
+    global host
+    oneSectionPages = 300
+    begin = nowPage - int(setting.get()) + 1
+    end = begin + oneSectionPages
+    key = ''
+    tem = ''
+    seachContent=entry.get()
+        #线上版
+    if 'http' in seachContent:
+        url = nextPageUrl
+        response = post(url)
+        result = response.text
+        soup = bs(result,'html.parser')
+        myContent = str(soup.find(id = 'content').text).replace('<br/>','\n')
+        text.config(state=tk.NORMAL)
+        text.delete(0.0, tk.END)
+        text.insert(tk.INSERT, myContent)
+        text.config(state=tk.DISABLED)
+        #获取名称and显示名称
+        title = soup.find('title').text
+        file_path.set(title)
+        #为下一章做准备
+        a_list = soup.find_all('a')
+        for a in a_list:
+            if a.text == '下一章':
+                nextPageUrl = host + a.get('href')
+                print(nextPageUrl)
+                break
+    else:
+        #线下版
+        for i in range(begin,end):
+            if i < content.__len__():
+                tem += content[i]
+        sections = re.findall(r'第\d{1,5}章',tem)
+        print(sections)
+        if sections.__len__() != 0:
+            key = sections[0]
+            keys = int(re.search(r'\d{1,5}',key).group())
+            toMatch = '第'+ str(keys) + '章'
+            for i ,v in enumerate(content):
+                if v.find(toMatch)!= -1 :
+                    nowPage = i
+                    insertText(setting.get())
+                    break
+                elif i+1 == content.__len__():
+                    mb.showinfo('WORNING!','Not found worlds in text file')
+        else :
+            mb.showinfo('WORNING!','Not found keyWorld 第N章 in text file')   
         
     
 #工具类函数，存和取
@@ -181,6 +239,7 @@ nowPage = 0
 nowSection = 0
 historyList = loadFile()
 initPageNumber = 20
+nextPageUrl = ''
 #准备添加历史记录功能，增加两个大frame，F1，F2
 F1 = tk.Frame(root)
 F2 = tk.Frame(root)
