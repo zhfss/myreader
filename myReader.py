@@ -24,16 +24,8 @@ def getText(openByAskOrFilepath = 'byAsk'):
     else:
         filename = openByAskOrFilepath
         print('打开的文件是：',filename)
-    if filename != '':      
-        if not (filename in historyList):
-            historyList.append(filename)
-            if historyList.__len__() > 5:
-                historyList.pop(0)
-            saveHistoryFileName()
-        else:
-            historyList.remove(filename)
-            historyList.append(filename)
-            saveHistoryFileName()
+    if filename != '':
+        addToHistoryFile(filename)
         #重置文件路径的名称
         file_path.set(filename)
         #filePathLabel.config(text = filename)
@@ -50,6 +42,47 @@ def insertText(pages):
     text.delete(0.0, tk.END)
     text.insert(tk.INSERT, getOnePage(pages))
     text.config(state=tk.DISABLED)
+#抽象显示通过网页访问的方式
+def showInternationPage(url):
+    global text
+    global nextPageUrl
+    host = re.findall('^.*com',url)[0]
+    response = post(url)
+    result = response.text
+    soup = bs(result,'html.parser')
+    myContent = str(soup.find(id = 'content').text).replace('<br/>','\n')
+    text.config(state=tk.NORMAL)
+    text.delete(0.0, tk.END)
+    text.insert(tk.INSERT, myContent)
+    text.config(state=tk.DISABLED)
+    #获取名称and显示名称
+    title = soup.find('title').text
+    file_path.set(title)
+    #为下一章做准备
+    a_list = soup.find_all('a')
+    for a in a_list:
+        if a.text == '下一章':
+            nextPageUrl = host + a.get('href')
+            print(nextPageUrl)
+            break
+    #添加到历史记录
+    addToHistoryFile(url)
+    entryContent.set(url)
+#添加到历史记录(仅仅修改history和save到本地)
+def addToHistoryFile(fileName):
+    global historyList
+    if fileName in historyList:
+        historyList.remove(fileName)
+        historyList.append(fileName)
+        saveHistoryFileName()
+        
+    else:
+        historyList.append(fileName)
+        if historyList.__len__() > 5:
+            historyList.pop(0)
+            saveHistoryFileName()
+        
+    print('addToHistoryFile',historyList)
 def getOnePage(lines = 20):
     global content
     global nowPage
@@ -78,53 +111,37 @@ def getOnePage(lines = 20):
     return tem
 #按钮的方法下一页
 def nextPage():
-
     lines = setting.get() 
     if nowPage  < content.__len__():
         insertText(setting.get())
 #按钮的方法上一页
 def previouPage():
-
     global nowPage
     lines = int(setting.get())*-1
     if nowPage + lines > 0:
-        
         insertText(lines)
     else:
         nowPage = 0
-        
         insertText(-lines)
-        
+
+    
+    
 #按钮的方法跳转
-def skipPage():
+def skipPage(skipToEntryORInput = 'entry'):
     global text
     global entry
     global nowPage
     global nextPageUrl
     global host
-    seachContent=entry.get()
-    host = re.findall('^.*com',seachContent)[0]
+    if skipToEntryORInput == 'entry':
+        seachContent=entry.get()
+    else:
+        seachContent= skipToEntryORInput
     if 'http' in seachContent:
         url = seachContent
-        response = post(url)
-        result = response.text
-        soup = bs(result,'html.parser')
-        myContent = str(soup.find(id = 'content').text).replace('<br/>','\n')
-        text.config(state=tk.NORMAL)
-        text.delete(0.0, tk.END)
-        text.insert(tk.INSERT, myContent)
-        text.config(state=tk.DISABLED)
-        #获取名称and显示名称
-        title = soup.find('title').text
-        file_path.set(title)
-        #为下一章做准备
-        a_list = soup.find_all('a')
-        for a in a_list:
-            if a.text == '下一章':
-                nextPageUrl = host + a.get('href')
-                print(nextPageUrl)
-                break
-        
+        showInternationPage(url)
+        #重置按钮的功能
+        initHistoryButtonCommand()
     else:
         for i ,v in enumerate(content):
             if v.find(seachContent)!= -1 :
@@ -146,25 +163,11 @@ def nextSection():
     seachContent=entry.get()
         #线上版
     if 'http' in seachContent:
-        url = nextPageUrl
-        response = post(url)
-        result = response.text
-        soup = bs(result,'html.parser')
-        myContent = str(soup.find(id = 'content').text).replace('<br/>','\n')
-        text.config(state=tk.NORMAL)
-        text.delete(0.0, tk.END)
-        text.insert(tk.INSERT, myContent)
-        text.config(state=tk.DISABLED)
-        #获取名称and显示名称
-        title = soup.find('title').text
-        file_path.set(title)
-        #为下一章做准备
-        a_list = soup.find_all('a')
-        for a in a_list:
-            if a.text == '下一章':
-                nextPageUrl = host + a.get('href')
-                print(nextPageUrl)
-                break
+        showInternationPage(nextPageUrl)
+        #保存到历史记录文件
+        addToHistoryFile(nextPageUrl)
+        #重置按钮的位置
+        initHistoryButtonCommand()
     else:
         #线下版
         for i in range(begin,end):
@@ -204,30 +207,32 @@ def loadFile():
     return historyInfo
     
 def initHistoryButtonCommand():
+    #负责初始化按钮的名称和调整text内容的作用
+    
     #command 引用的变量 ，参数又引用变量，导致最后引用的都是同一个变量。
     #所以button不起变化啊啊啊啊（变量的理解不深刻）
-    global btList
     #似乎找到了解决的方式：_value = value
+    global btList
     for i ,value in enumerate(historyList):
-        btList[i].config(command = lambda _value = value : getText(openByAskOrFilepath = _value))
-    '''
-    v1,v2,v3,v4,v5 = historyList[0],historyList[1],historyList[2],historyList[3],historyList[4]
-    btList[0].config(command = lambda : getText( openByAskOrFilepath = v1))
-    btList[1].config(command = lambda : getText( openByAskOrFilepath = v2))
-    btList[2].config(command = lambda : getText( openByAskOrFilepath = v3))
-    btList[3].config(command = lambda : getText( openByAskOrFilepath = v4))
-    btList[4].config(command = lambda : getText( openByAskOrFilepath = v5))
-    '''
+        if 'http' in value:
+            btList[i].config(command = lambda _value = value :skipPage(skipToEntryORInput = _value ))
+        else:
+            btList[i].config(command = lambda _value = value : getText(openByAskOrFilepath = _value))
     print(historyList)
+    #如果还未全部初始化完成就先取消安装
     if 'INIT' in historyList:
-        #先取消安装
         for i in range(5):
             btList[i].pack_forget()
-    #再次安装
+    #调整按钮名称的功能
+    #判断是否是http模块
     for i in range(5):
         if historyList[i] !='INIT':
-            btList[i].config( text= (re.search('\/.*$', historyList[i]).group().split('/')[-1]))
-            btList[i].pack(padx=5, fill=tk.X ,side = 'bottom')
+            if 'http' in historyList[i]:
+                btList[i].config(text = historyList[i])
+                btList[i].pack(padx=5, fill=tk.X ,side = 'bottom')
+            else:
+                btList[i].config( text= (re.search('\/.*$', historyList[i]).group().split('/')[-1]))
+                btList[i].pack(padx=5, fill=tk.X ,side = 'bottom')
             
     
 root = tk.Tk()
@@ -263,6 +268,9 @@ bt_section.pack(side = 'left',padx =5)
 frm = tk.Frame(F1)
 bt_nextPage = tk.Button(frm,text = 'nextPage',command = nextPage)
 entry = tk.Entry(frm , bd = 3 , width = 30 )
+entryContent = tk.StringVar()
+entryContent.set('you can search')
+entry.config(textvariable = entryContent)
 bt_skipPage = tk.Button(frm,text = 'skip to ',command = skipPage)
 bt_beforePage = tk.Button(frm, text = 'previouPage',command = previouPage)
 widget_padx = 5
