@@ -31,8 +31,21 @@ def getText(openByAskOrFilepath = 'byAsk'):
         #filePathLabel.config(text = filename)
         #重置按钮的位置
         initHistoryButtonCommand()
-        with open(filename,'r',encoding = 'UTF-8') as f:
-            content = f.readlines()
+        try :
+            
+            with open(filename,'r') as f:
+                content = f.readlines()
+                print(f.encoding,'打开文件失败')
+        except UnicodeDecodeError:
+            try:
+                
+                with open(filename,'r',encoding = 'UFT-8') as f:
+                    content = f.readlines()
+                    print(f.encoding,'打开文件失败')
+            except:
+                mb.showerror('文件打开错误','请检查打开文件是否有误！')
+                
+        
         insertText(setting.get())
 # 获取一页（默认20行的内容）
 #插入数据的代码过多，组成一个函数吧
@@ -46,15 +59,24 @@ def insertText(pages):
 def showInternationPage(url):
     global text
     global nextPageUrl
+    global content
     host = re.findall('^.*com',url)[0]
     response = post(url)
     result = response.text
     soup = bs(result,'html.parser')
     myContent = str(soup.find(id = 'content').text).replace('<br/>','\n')
+    #去广告
+    myContent = myContent.replace(url+'　　请记住本书首发域名：www.biqugexsw.com。笔趣阁小说网手机版阅读网址：m.biqugexsw.com','')
+    '''
+    content = myContent.split('\n')
+    print(content.__len__())
+    insertText(setting.get())
+    '''
     text.config(state=tk.NORMAL)
     text.delete(0.0, tk.END)
     text.insert(tk.INSERT, myContent)
     text.config(state=tk.DISABLED)
+
     #获取名称and显示名称
     title = soup.find('title').text
     file_path.set(title)
@@ -82,7 +104,7 @@ def addToHistoryFile(fileName):
             historyList.pop(0)
             saveHistoryFileName()
         
-    print('addToHistoryFile',historyList)
+    #print('addToHistoryFile',historyList)
 def getOnePage(lines = 20):
     global content
     global nowPage
@@ -218,7 +240,7 @@ def initHistoryButtonCommand():
             btList[i].config(command = lambda _value = value :skipPage(skipToEntryORInput = _value ))
         else:
             btList[i].config(command = lambda _value = value : getText(openByAskOrFilepath = _value))
-    print(historyList)
+    #print(historyList)
     #如果还未全部初始化完成就先取消安装
     if 'INIT' in historyList:
         for i in range(5):
@@ -294,7 +316,6 @@ filePathLabel.pack(side = 'top',pady = 5 )
 #文本框展示内容&加个滚动条
 text = ts.ScrolledText(F1,width = 68,height = 30 )
 text.pack(side = 'top',fill = tk.BOTH,pady = 5)
-
 
 #开启F2 界面的历史记录
 
