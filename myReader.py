@@ -1,6 +1,7 @@
 import tkinter as tk
 import tkinter.filedialog as fd
 import tkinter.messagebox as mb
+import tkinter.colorchooser
 import re
 import tkinter.scrolledtext as ts
 import pickle as pk
@@ -35,14 +36,14 @@ def getText(openByAskOrFilepath = 'byAsk'):
             
             with open(filename,'r') as f:
                 content = f.readlines()
-                print(f.encoding,'打开文件失败')
-        except UnicodeDecodeError:
-            try:
                 
-                with open(filename,'r',encoding = 'UFT-8') as f:
+        except UnicodeDecodeError:
+            print(f.encoding,'打开文件失败，试用utf-8打开')
+            try:
+                with open(filename,'r',encoding = 'UTF-8') as f:
                     content = f.readlines()
-                    print(f.encoding,'打开文件失败')
             except:
+                print(f.encoding,'打开文件失败，弹出提示！')
                 mb.showerror('文件打开错误','请检查打开文件是否有误！')
                 
         
@@ -195,22 +196,25 @@ def nextSection():
         for i in range(begin,end):
             if i < content.__len__():
                 tem += content[i]
-        sections = re.findall(r'第\d{1,5}章',tem)
+        sections = re.findall(r'第.{1,5}章',tem)
         print(sections)
         if sections.__len__() != 0:
             key = sections[0]
-            keys = int(re.search(r'\d{1,5}',key).group())
-            toMatch = '第'+ str(keys) + '章'
             for i ,v in enumerate(content):
-                if v.find(toMatch)!= -1 :
+                if v.find(key)!= -1 :
                     nowPage = i
                     insertText(setting.get())
                     break
                 elif i+1 == content.__len__():
                     mb.showinfo('WORNING!','Not found worlds in text file')
-        else :
-            mb.showinfo('WORNING!','Not found keyWorld 第N章 in text file')   
-        
+        else:
+            mb.showinfo('WORNING!','Not found keyWorld 第N章 in text file') 
+#设置text 的背景颜色               
+def setTextColor():
+    global text
+    bgc = tkinter.colorchooser.askcolor()
+    text.config(bg = bgc[1])
+    print('设置背景颜色：',bgc[1])
     
 #工具类函数，存和取
 def saveHistoryFileName():
@@ -255,6 +259,7 @@ def initHistoryButtonCommand():
             else:
                 btList[i].config( text= (re.search('\/.*$', historyList[i]).group().split('/')[-1]))
                 btList[i].pack(padx=5, fill=tk.X ,side = 'bottom')
+
             
     
 root = tk.Tk()
@@ -315,10 +320,13 @@ filePathLabel.config(textvariable = file_path)
 filePathLabel.pack(side = 'top',pady = 5 )
 #文本框展示内容&加个滚动条
 text = ts.ScrolledText(F1,width = 68,height = 30 )
+#text.config(bg = 'silver')
 text.pack(side = 'top',fill = tk.BOTH,pady = 5)
 
 #开启F2 界面的历史记录
-
+#设置颜色，之后可能开辟菜单，放入菜单中
+colorChooseBt = tk.Button(F2,text = 'setBgColor',command = setTextColor)
+colorChooseBt.pack(side = tk.TOP, pady = 50)
 #f2的名称
 f2Title = tk.Label(F2,text = 'history recode')
 f2Title.pack(side = tk.TOP,fill = tk.X)
